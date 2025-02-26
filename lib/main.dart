@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 void main() {
   runApp(ChangeNotifierProvider(
@@ -26,13 +28,33 @@ class TodoProvider with ChangeNotifier {
 
   List<String> get todos => _todos;
 
+  TodoProvider() {
+    _loadTodos();
+  }
+
+  void _loadTodos() async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String>? savedTodos = prefs.getStringList('todos');
+    if (savedTodos != null) {
+      _todos = savedTodos;
+      notifyListeners();
+    }
+  }
+
+  void _saveTodos() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setStringList('todos', _todos);
+  }
+
   void addTodo(String todo) {
     _todos.add(todo);
+    _saveTodos();
     notifyListeners();
   }
 
   void removeTodo(int index) {
     _todos.removeAt(index);
+    _saveTodos();
     notifyListeners();
   }
 }
