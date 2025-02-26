@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 void main() {
-  runApp(TodoApp());
+  runApp(ChangeNotifierProvider(
+    create: (context) => TodoProvider(),
+    child: TodoApp(),
+  ));
 }
 
 class TodoApp extends StatelessWidget {
@@ -17,28 +21,30 @@ class TodoApp extends StatelessWidget {
   }
 }
 
-class TodoListScreen extends StatefulWidget {
-  @override
-  _TodoListScreenState createState() => _TodoListScreenState();
-}
+class TodoProvider with ChangeNotifier {
+  List<String> _todos = [];
 
-class _TodoListScreenState extends State<TodoListScreen> {
-  final List<String> _todos = [];
-  final TextEditingController _controller = TextEditingController();
+  List<String> get todos => _todos;
 
-  void _addTodo() {
-    if (_controller.text.isNotEmpty) {
-      setState(() {
-        _todos.add(_controller.text);
-        _controller.clear();
-      });
-    }
+  void addTodo(String todo) {
+    _todos.add(todo);
+    notifyListeners();
   }
 
-  void _removeTodo(int index) {
-    setState(() {
-      _todos.removeAt(index);
-    });
+  void removeTodo(int index) {
+    _todos.removeAt(index);
+    notifyListeners();
+  }
+}
+
+class TodoListScreen extends StatelessWidget {
+  final TextEditingController _controller = TextEditingController();
+
+  void _addTodo(BuildContext context) {
+    if (_controller.text.isNotEmpty) {
+      Provider.of<TodoProvider>(context, listen: false).addTodo(_controller.text);
+      _controller.clear();
+    }
   }
 
   @override
@@ -59,21 +65,25 @@ class _TodoListScreenState extends State<TodoListScreen> {
                 ),
                 IconButton(
                   icon: Icon(Icons.add),
-                  onPressed: _addTodo,
+                  onPressed: () => _addTodo(context),
                 ),
               ],
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              itemCount: _todos.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(_todos[index]),
-                  trailing: IconButton(
-                    icon: Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _removeTodo(index),
-                  ),
+            child: Consumer<TodoProvider>(
+              builder: (context, todoProvider, child) {
+                return ListView.builder(
+                  itemCount: todoProvider.todos.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      title: Text(todoProvider.todos[index]),
+                      trailing: IconButton(
+                        icon: Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => todoProvider.removeTodo(index),
+                      ),
+                    );
+                  },
                 );
               },
             ),
