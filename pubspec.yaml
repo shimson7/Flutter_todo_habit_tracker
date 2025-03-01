@@ -34,6 +34,7 @@ dependencies:
   shared_preferences: ^2.2.0  # 로컬 데이터 저장 (할 일 목록 저장)
   intl: ^0.18.0  # 날짜 포맷 관리
   flutter_local_notifications: ^9.9.1  # 알림 기능
+  timezone: ^0.8.0  # 이 패키지가 필요함
 
 
   # The following adds the Cupertino Icons font to your application.
