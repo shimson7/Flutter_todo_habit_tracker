@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+
+
 import 'dart:convert';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +23,8 @@ class NotificationService {
   FlutterLocalNotificationsPlugin();
 
   Future<void> init() async {
+    tz.initializeTimeZones(); // Timezone 초기화
+
     const AndroidInitializationSettings initializationSettingsAndroid =
     AndroidInitializationSettings('@mipmap/ic_launcher');
 
@@ -40,6 +47,34 @@ class NotificationService {
       title,
       body,
       platformChannelSpecifics,
+    );
+  }
+
+  Future<void> scheduleNotification(String title, String body, TimeOfDay time) async {
+    final now = DateTime.now();
+    final scheduledTime = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+
+    final tz.TZDateTime tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+
+    final androidDetails = AndroidNotificationDetails(
+      'scheduled_channel',
+      'Scheduled Notifications',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+
+    final details = NotificationDetails(android: androidDetails);
+
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      0,
+      title,
+      body,
+      tzScheduledTime, // ✅ DateTime -> TZDateTime 변환 완료
+      details,
+      androidAllowWhileIdle: true,
+      uiLocalNotificationDateInterpretation:
+      UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time,
     );
   }
 }
@@ -104,6 +139,16 @@ class TodoListScreen extends StatelessWidget {
     }
   }
 
+  void _scheduleTodoNotification(BuildContext context) async {
+    TimeOfDay? selectedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (selectedTime != null) {
+      NotificationService().scheduleNotification('Scheduled Task', 'Reminder for your task', selectedTime);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -126,6 +171,10 @@ class TodoListScreen extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          ElevatedButton(
+            onPressed: () => _scheduleTodoNotification(context),
+            child: Text('Set Reminder'),
           ),
           Expanded(
             child: Consumer<TodoProvider>(
